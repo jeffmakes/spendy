@@ -9,10 +9,11 @@ parser = argparse.ArgumentParser(
     description = "Tool to parse Lloyds CSV exports and produce insights" )
 
 parser.add_argument("filename")
-parser.add_argument("command", choices=['print', 'total_out', 'total_in'])
-parser.add_argument("--start_date", "-s", help="Starting date for command that operates on a time period. Supply in a valid ISO format")
-parser.add_argument("--end_date", "-e", help="End date for command that operates on a time period. Supply in a valid ISO format")
-
+parser.add_argument("--print", action="store_true")
+parser.add_argument("--total_out", action="store_true")
+parser.add_argument("--total_in", action="store_true")
+parser.add_argument("--start_date", "-s", help="Start date to filter a subset of transactions. Defaults to first transaction if not set. Supply in a valid ISO format")
+parser.add_argument("--end_date", "-e", help="End date to filter a subset of transactions. Defaults to last transaction if not set. Supply in a valid ISO format")
 
 args = parser.parse_args()
 data = []
@@ -49,15 +50,22 @@ data = sorted(data, key=itemgetter('date'))
 def print_transaction(txn):
     print("{}\t{}\t{:20}\t{:.2f}\t{:.2f}\t{:.2f}".format(txn["date"], txn["transaction_type"], txn["counterparty"], txn["amount_out"], txn["amount_in"], txn["balance"]))
 
-if args.command == "print":
-    for d in data:
-        print_transaction(d)
+start = datetime.strptime(args.start_date, "%Y-%m-%d").date() if args.start_date is not None else data[0]["date"]
+end = datetime.strptime(args.end_date, "%Y-%m-%d").date() if args.end_date is not None else data[-1]["date"]
 
-if args.command == "total_out":
-    start = datetime.strptime(args.start_date, "%Y-%m-%d").date()
-    end = datetime.strptime(args.end_date, "%Y-%m-%d").date()
-    txns = [d for d in data if d["date"] >= start and d["date"] <= end]
+txns = [d for d in data if d["date"] >= start and d["date"] <= end]
+
+if args.print:
     for t in txns:
         print_transaction(t)
+
+def total_out():
+    out = 0
+    for t in txns:
+        out = out + t["amount_out"]
+    return out
+
+if args.total_out:
+    print("Total out: {:.2f}".format(total_out()))
 
     
