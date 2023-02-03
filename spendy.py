@@ -46,9 +46,18 @@ for row in data:            # Convert strings to floats, if they're valid
 
 data = sorted(data, key=itemgetter('date'))
 
+def print_transaction(txn):
+    print("{}\t{}\t{:20}\t{:.2f}\t{:.2f}\t{:.2f}".format(txn["date"], txn["transaction_type"], txn["counterparty"], txn["amount_out"], txn["amount_in"], txn["balance"]))
+
 if args.command == "print":
     for d in data:
-        print("{}\t{}\t{:20}\t{}\t{}".format(d["date"], d["transaction_type"], d["counterparty"], d["amount_out"], d["amount_in"]))
+        print_transaction(d)
 
+if args.command == "total_out":
+    start = datetime.strptime(args.start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(args.end_date, "%Y-%m-%d").date()
+    txns = [d for d in data if d["date"] >= start and d["date"] <= end]
+    for t in txns:
+        print_transaction(t)
 
     
