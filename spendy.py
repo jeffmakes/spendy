@@ -1,9 +1,9 @@
 import argparse
 from datetime import datetime
 import calendar
-from thefuzz import fuzz
 
 import csvparser
+import counterparty
 
 parser = argparse.ArgumentParser(
     prog = "Spendy",
@@ -40,7 +40,6 @@ if args.year and args.month:
 #txns = [d for d in data if d["date"] >= start and d["date"] <= end]
 if start and end:
     subset = transactions.within_date_range(txns, start, end)
-
 else:
     subset = txns
 
@@ -62,49 +61,5 @@ def total_in(txns):
 
 print("From {} to {} Total in {:.2f} Total out {:.2f}".format(start, end, total_in(subset), total_out(subset)))
 
+counterparty.from_transactions(txns)
 
-
-class Counterparties:
-    def __init__(self, transactions):
-        self.cps = set()           # use a set type to maintain uniqueness
-        for t in transactions:
-            self.add(t.counterparty)
-
-    def add(self, name):        # Name is taken directly from the counterparty field in the CSV
-        self.cps.add(name);
-
-c = Counterparties(subset)
-
-data = c.cps
-
-threshold     =60 
-minGroupSize = 1
-
-from itertools import combinations
-
-paired = { c:{c} for c in data }
-for a,b in combinations(data,2):
-    if fuzz.partial_ratio(a, b) < threshold: continue
-    paired[a].add(b)
-    paired[b].add(a)
-
-groups    = list()
-ungrouped = set(data)
-while ungrouped:
-    bestGroup = {}
-    for city in ungrouped:
-        g = paired[city] & ungrouped
-        for c in g.copy():
-            g &= paired[c] 
-        if len(g) > len(bestGroup):
-            bestGroup = g
-    if len(bestGroup) < minGroupSize : break  # to terminate grouping early change minGroupSize to 3
-    ungrouped -= bestGroup
-    groups.append(bestGroup)
-
-groups_ord = []
-for g in groups:
-    groups_ord.append(list(g))
-
-groups_ord.sort()
-print(groups_ord)
